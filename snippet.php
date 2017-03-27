@@ -10,20 +10,31 @@ function downloadWeTransfer($url)
 
 	switch (count($parts))
 	{
-		case 2: 	$virtual_link = vsprintf('https://www.wetransfer.com/api/v1/transfers/%s/download?recipient_id=&security_hash=%s&password=&ie=false',   $parts); break;
-		case 3: 	$virtual_link = vsprintf('https://www.wetransfer.com/api/v1/transfers/%s/download?recipient_id=%s&security_hash=%s&password=&ie=false', $parts); break;
+		case 2: 
+			$virtual_link = vsprintf('https://www.wetransfer.com/api/ui/transfers/%s/%s/download?recipient_id=&password=&ie=false',   $parts); break;
+		case 3: 
+                        $security = $parts[2];
+                        $parts[2] = $parts[1];
+                        $parts[1] = $security;
+			$virtual_link = vsprintf('https://www.wetransfer.com/api/ui/transfers/%s/%s/download?recipient_id=%s&password=&ie=false', $parts); break;
 		default:
 			throw new Exception('Invalid WeTransfer URL');
 	}
 
-	$response = file_get_contents($virtual_link);
-	$response = json_decode($response, true);
+	$agent= 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.0.3705; .NET CLR 1.1.4322)';
 
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_USERAGENT, $agent);
+	curl_setopt($ch, CURLOPT_URL,$virtual_link);
+	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+	curl_setopt($ch, CURLOPT_HEADER, false);
+	$response = curl_exec($ch);
+	$response = json_decode($response, true);
 	if (isset($response['direct_link']))
 	{
-		$query_data = parse_url($response['direct_link'], PHP_URL_QUERY);
-		parse_str($query_data, $query_params);
-		$filename = urldecode($query_params['filename']);
+		$filename = preg_replace("/^.+\/(.+)\?.+$/", "$1", urldecode($response['direct_link']));
 
 		$local_handle = fopen($filename, 'w+b');
 		$ch = curl_init();
