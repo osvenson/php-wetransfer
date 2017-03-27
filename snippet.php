@@ -41,7 +41,8 @@ function downloadWeTransfer($url)
 	{
 		$action  = $response['formdata']['action'];
 		$postdata = http_build_query($response['fields']);
-		$filename = urldecode($response['fields']['filename']);
+		$pieces = explode("/", $action);
+		$filename = urldecode(array_pop($pieces));
 
 		$local_handle = fopen($filename, 'w+b');
 		$ch = curl_init();
